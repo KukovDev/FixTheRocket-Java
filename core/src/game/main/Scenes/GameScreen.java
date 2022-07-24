@@ -111,9 +111,9 @@ public class GameScreen implements Screen {
                 int pos_x = block_unit * block_x;
                 int pos_y = block_unit * block_y;
                 Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit);
-                Rectangle camera_rect = new Rectangle(camera.position.x - 128/*- camera.viewportWidth / 2*/,
-                                                      camera.position.y - 64/*- camera.viewportHeight / 2*/,
-                                                         256, 128);
+                Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
+                                                      camera.position.y - camera.viewportHeight / 2,
+                                                         camera.viewportWidth, camera.viewportHeight);
 
                 if (isCollision(block_rect, camera_rect)) {
                     if (tilemap[block_y][block_x] == -1) {
