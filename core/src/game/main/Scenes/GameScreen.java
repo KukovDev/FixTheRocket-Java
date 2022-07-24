@@ -6,7 +6,6 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import game.main.Main;
 import game.main.Objects.Player;
@@ -18,24 +17,26 @@ import java.util.List;
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
     private OrthographicCamera camera;
-    private float zoom = 0.15f;
+    private float zoom = 0.25f;
 
     private List<Player> list_players;
 
     private int[][] tilemap;
-    private int tilemap_height = 4;
-    private int tilemap_width = 4;
+    private final int tilemap_height = 4;
+    private final int tilemap_width = 4;
+    private final byte block_unit = 32;
 
-    private int[] tilemap_mouse_pos;
+    // private int[] tilemap_mouse_pos; TODO
     // -----------------------------------------------------------------------------------------------------------------
 
-    // Текстуры-Спрайты: -------------------------------------------------------------------------------------------------------
+    // Текстуры: -------------------------------------------------------------------------------------------------------
     private SpriteBatch batch;
 
-    private Sprite snow_surf_sprt;
-    private Sprite null_surf_sprt;
+    private Texture snow1_env;
+    private Texture snow2_env;
+    private Texture snow3_env;
 
-    private Sprite player_sprt;
+    private Texture player_txtr;
     // -----------------------------------------------------------------------------------------------------------------
 
     /* P.S: Этот блок кода не используется.
@@ -43,9 +44,7 @@ public class GameScreen implements Screen {
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         return texture;}*/
 
-    public Sprite load_sprite(String link) {
-        return new Sprite(new Texture(link));
-    }
+    public Texture load_texture(String link) { return new Texture(link); }
 
     @Override
     public void show() {
@@ -56,18 +55,22 @@ public class GameScreen implements Screen {
         camera.zoom = zoom;
 
         list_players = new ArrayList<>();
-        tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width, -1);
-        tilemap_mouse_pos = new int[2];
+        tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width);
+        // tilemap_mouse_pos = new int[2]; TODO
         // -------------------------------------------------------------------------------------------------------------
 
-        // Преобразование текстур в спрайты: ---------------------------------------------------------------------------
-        snow_surf_sprt = load_sprite("sprites/blocks/surfs/snow_surf.png");
-        null_surf_sprt = load_sprite("sprites/blocks/surfs/null_surf.png");
-        player_sprt = load_sprite("sprites/player/running/1.png");
+        // Загрузка текстур: -------------------------------------------------------------------------------------------
+        batch = new SpriteBatch();
+
+        snow1_env = load_texture("sprites/blocks/environment/snow1.png");
+        snow2_env = load_texture("sprites/blocks/environment/snow2.png");
+        snow3_env = load_texture("sprites/blocks/environment/snow3.png");
+
+        player_txtr = load_texture("sprites/player/running/1.png");
         // -------------------------------------------------------------------------------------------------------------
 
         // Создание объектов: ------------------------------------------------------------------------------------------
-        list_players.add(new Player(player_txtr, 0f, 0f, player_txtr.getWidth(), player_txtr.getHeight()));
+        list_players.add(new Player(0f, 0f, player_txtr.getWidth(), player_txtr.getHeight()));
         // -------------------------------------------------------------------------------------------------------------
     }
 
@@ -91,12 +94,14 @@ public class GameScreen implements Screen {
 
         for (int block_y=0; block_y<tilemap_height; block_y++) {
             for (int block_x=0; block_x<tilemap_width; block_x++) {
-                if (tilemap[block_y][block_x] == -1){
-                    batch.draw(snow_surf_txtr, block_x, block_y);}
-                else {batch.draw(null_surf_txtr, block_x, block_y);}
-            }}
+                int pos_x = block_unit * block_x;
+                int pos_y = block_unit * block_y;
 
-        for (Player list_player : list_players) {list_player.draw(batch);}
+                if (tilemap[block_y][block_x] == -1){ batch.draw(snow1_env, pos_x, pos_y); }
+                if (tilemap[block_y][block_x] == -2){ batch.draw(snow2_env, pos_x, pos_y); }
+                if (tilemap[block_y][block_x] == -3){ batch.draw(snow3_env, pos_x, pos_y); }
+            }
+        }
 
         batch.end();
         // -------------------------------------------------------------------------------------------------------------
@@ -128,6 +133,5 @@ public class GameScreen implements Screen {
     public void dispose() {
         // Вызывается при закрытии окна.
         batch.dispose();
-        snow_surf_txtr.dispose();
     }
 }
