@@ -18,29 +18,27 @@ import game.main.Objects.Player;
 
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
-    private OrthographicCamera camera;
-    private float zoom = 0.5f;
+    private OrthographicCamera camera;      // 2D камера.
+    private final float zoom = 0.5f;              // Зум камеры.
 
-    private List<Player> list_players;
+    private List<Player> list_players;      // TODO Список игроков.
 
-    private int[][] tilemap;
-    private final int tilemap_height = 256;
-    private final int tilemap_width = 256;
-    private final byte block_unit = 32;
+    private int[][] tilemap;                // Карта.
+    private final int tilemap_height = 256; // Высота карты.
+    private final int tilemap_width = 256;  // Ширина карты.
+    final byte block_unit = 32;             // 1 unit = 32 px.
 
-    // private int[] tilemap_mouse_pos; TODO
-
-    private float DeltaTime = 1;
+    // private int[] tilemap_mouse_pos; TODO Найти блок по позиции мыши.
     // -----------------------------------------------------------------------------------------------------------------
 
     // Текстуры: -------------------------------------------------------------------------------------------------------
-    private SpriteBatch batch;
+    private SpriteBatch batch;   // Партия спрайтов на отрисовку.
 
-    private Texture snow1_env;
-    private Texture snow2_env;
-    private Texture snow3_env;
+    private Texture snow1_env;   // Снежная поверхность 1.
+    private Texture snow2_env;   // Снежная поверхность 2.
+    private Texture snow3_env;   // Снежная поверхность 3.
 
-    private Texture player_txtr;
+    private Texture player_txtr; // Текстура игрока.
     // -----------------------------------------------------------------------------------------------------------------
 
     /* P.S: Этот блок кода не используется.
@@ -48,8 +46,10 @@ public class GameScreen implements Screen {
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         return texture;}*/
 
+    // Загрузка спрайтов:
     public Texture load_texture(String link) { return new Texture(link); }
 
+    // Проверка на сталкивание двух Rect:
     public boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
 
     @Override
@@ -62,7 +62,7 @@ public class GameScreen implements Screen {
 
         list_players = new ArrayList<>();
         tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width);
-        // tilemap_mouse_pos = new int[2]; TODO
+        // tilemap_mouse_pos = new int[2]; TODO Найти блок по позиции мыши.
         // -------------------------------------------------------------------------------------------------------------
 
         // Загрузка текстур: -------------------------------------------------------------------------------------------
@@ -88,16 +88,17 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f); // > Очистка экрана.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);                 // |
 
-        DeltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond();
-        if (DeltaTime > 340282356779733661637539395458142568447.9f) DeltaTime = 1;
-        System.out.println(DeltaTime);
+        // Время между кадрами.
+        float deltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond(); // Получение DeltaTime.
+        if (deltaTime > 340282356779733661637539395458142568447.9f) deltaTime = 1; // Если DeltaTime больше максимума.
 
         camera.update(); // Обновление камеры.
         camera.zoom = zoom;
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * DeltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * DeltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * DeltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * DeltaTime;
+
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * deltaTime;
 
         Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond());
         // -------------------------------------------------------------------------------------------------------------
@@ -106,28 +107,27 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
+        // Пройтись по блокам в высоту:
         for (int block_y=0; block_y < tilemap_height; block_y++) {
+            // Пройтись по блокам в ширину:
             for (int block_x=0; block_x < tilemap_width; block_x++) {
-                int pos_x = block_unit * block_x;
-                int pos_y = block_unit * block_y;
-                Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit);
+                int pos_x = block_unit * block_x; // Получение X позиции блока в пикселях.
+                int pos_y = block_unit * block_y; // Получение Y позиции блока в пикселях.
+                Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit); // Rect блока.
                 Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
                                                       camera.position.y - camera.viewportHeight / 2,
-                                                         camera.viewportWidth, camera.viewportHeight);
+                                                         camera.viewportWidth, camera.viewportHeight); // Rect камеры.
 
+                // Если камера видит блок:
                 if (isCollision(block_rect, camera_rect)) {
-                    if (tilemap[block_y][block_x] == -1) {
-                        batch.draw(snow1_env, pos_x, pos_y);
-                    }
-                    if (tilemap[block_y][block_x] == -2) {
-                        batch.draw(snow2_env, pos_x, pos_y);
-                    }
-                    if (tilemap[block_y][block_x] == -3) {
-                        batch.draw(snow3_env, pos_x, pos_y);
-                    }
+                    if (tilemap[block_y][block_x] == -1) { batch.draw(snow1_env, pos_x, pos_y); } // Снеж.Поверх. 1.
+                    if (tilemap[block_y][block_x] == -2) { batch.draw(snow2_env, pos_x, pos_y); } // Снеж.Поверх. 2.
+                    if (tilemap[block_y][block_x] == -3) { batch.draw(snow3_env, pos_x, pos_y); } // Снеж.Поверх. 3.
                 }
             }
         }
+
+        // TODO Здесь должен быть цикл for для обработки игроков в коллекции.
 
         batch.end();
         // -------------------------------------------------------------------------------------------------------------
@@ -136,6 +136,8 @@ public class GameScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         // Вызывается при изменении размеров окна.
+
+        // Установка новых размеров камеры:
         camera.viewportWidth = Gdx.graphics.getWidth();
         camera.viewportHeight = Gdx.graphics.getHeight();
     }
