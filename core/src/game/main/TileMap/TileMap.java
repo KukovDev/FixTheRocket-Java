@@ -1,4 +1,4 @@
-package game.main;
+package game.main.TileMap;
 
 public class TileMap {
     public static int[][] Create(int height, int width, int id_all_blocks) {
