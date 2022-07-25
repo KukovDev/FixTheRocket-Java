@@ -1,4 +1,4 @@
-package game.main.Scenes;
+package game.main.Screens;
 
 // Импорт библиотек: ---------------------------------------------------------------------------------------------------
 import com.badlogic.gdx.Gdx;
@@ -11,24 +11,21 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import game.main.Main;
-import java.util.ArrayList;
-import java.util.List;
-import game.main.Objects.Player;
 // ---------------------------------------------------------------------------------------------------------------------
 
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
+
+    // Камера:
     OrthographicCamera camera;        // 2D камера.
-    float zoom = 0.5f;                // Зум камеры.
+    float zoom = 1f;                  // Зум камеры.
 
-    List<Player> list_players;        // TODO Список игроков.
-
+    // Карта:
     int[][] tilemap;                  // Карта.
-    final int tilemap_height = 4;     // Высота карты.
-    final int tilemap_width = 4;      // Ширина карты.
-    final short block_unit = 32;     // 1 unit = 32 px.
-
-    int[] mouse_block_pos;    // Позиция мыши в блоках.
+    final int tilemap_height = 8;     // Высота карты.
+    final int tilemap_width = 8;      // Ширина карты.
+    final short block_unit = 64;      // 1 unit = 64 px.
+    int[] mouse_block_pos;            // Позиция мыши в блоках.
     int old_id_block_env;             // Айди поверхности на которую поставили блок.
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -44,39 +41,13 @@ public class GameScreen implements Screen {
     Texture player_txtr; // Текстура игрока.
     // -----------------------------------------------------------------------------------------------------------------
 
-    // Загрузка спрайтов:
-    Texture load_texture(String link) { return new Texture(link); }
-
-    // Проверка на сталкивание двух Rect:
-    public boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
-
-    public int[] block_mouse_pos() {
-        mouse_block_pos[0] = (Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) /
-                (int) (block_unit / zoom);
-
-        mouse_block_pos[1] = (-(Gdx.input.getY() - Gdx.graphics.getHeight()) + ((int) camera.position.y -
-                (int) camera.viewportHeight / 4) * 2) / (int) (block_unit / zoom);
-
-        if ((Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) < 0) {
-            mouse_block_pos[0] = -1;
-        }
-
-        if (-(Gdx.input.getY() - Gdx.graphics.getHeight()) +
-                ((int) camera.position.y - (int) camera.viewportHeight / 4) * 2 < 0) {
-            mouse_block_pos[1] = -1;
-        }
-
-        return mouse_block_pos;
-    }
-
     @Override
     public void show() {
         // Вызывается при переключении на этот скрин.
 
         // Создание игровых переменных: --------------------------------------------------------------------------------
-        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Камера.
 
-        list_players = new ArrayList<>();
         tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width);
         mouse_block_pos = new int[2];
         // -------------------------------------------------------------------------------------------------------------
@@ -92,7 +63,7 @@ public class GameScreen implements Screen {
         // -------------------------------------------------------------------------------------------------------------
 
         // Создание объектов: ------------------------------------------------------------------------------------------
-        list_players.add(new Player(0f, 0f, player_txtr.getWidth(), player_txtr.getHeight()));
+        // [...]
         // -------------------------------------------------------------------------------------------------------------
     }
 
@@ -111,36 +82,76 @@ public class GameScreen implements Screen {
     public void render(float delta) {
         // Вызывается постоянно.
 
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f); // > Очистка экрана.
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);                 // |
+        Logic(); // Вызов логики.
+    }
 
-        // Время между кадрами.
-        float deltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond(); // Получение DeltaTime.
-        if (deltaTime > 340282356779733661637539395458142568447.9f) deltaTime = 1; // Если DeltaTime больше максимума.
+    @Override
+    public void resize(int width, int height) {
+        // Вызывается при изменении размеров окна.
 
-        camera.update(); // Обновление камеры.
-        camera.zoom = zoom;
+        // Установка новых размеров камеры:
+        camera.viewportWidth = Gdx.graphics.getWidth();
+        camera.viewportHeight = Gdx.graphics.getHeight();
+    }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * deltaTime; // > Перемещение камеры.
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * deltaTime; // |
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * deltaTime; // |
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * deltaTime; // |
+    // Не используемое: ------------------------------------------------------------------------------------------------
+    @Override
+    public void pause() { /* Вызывается при сворачивании окна. */ }
 
-        Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond());
+    @Override
+    public void resume() { /* Вызывается при разворачивании окна. */ }
+
+    @Override
+    public void hide() { /* Вызывается при переключении на этот скрин. */ }
+    // -----------------------------------------------------------------------------------------------------------------
+
+    // Логика:
+    public void Logic() {
+        // Время между кадрами: ----------------------------------------------------------------------------------------
+        float DeltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond(); // Получение DeltaTime.
+        if (DeltaTime > 340282356779733661637539395458142568447.9f) DeltaTime = 1; // Если DeltaTime больше максимума.
+        // -------------------------------------------------------------------------------------------------------------
+
+        camera.zoom = zoom; // Установка зума камеры.
+
+        Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond()); // Заголовок окна.
+
+        // Перемещение камеры: -----------------------------------------------------------------------------------------
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * DeltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * DeltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * DeltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * DeltaTime;
+        // -------------------------------------------------------------------------------------------------------------
 
         // Установка блоков: -------------------------------------------------------------------------------------------
         try {
             mouse_block_pos = block_mouse_pos(); // Получение указания мыши на блок.
 
+            // Установка:
             if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
                 old_id_block_env = tilemap[mouse_block_pos[1]][mouse_block_pos[0]];
                 tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = 1;
             }
 
-            if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
+            // Удаление:
+            if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT)) {
                 tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = -1;
+            }
+
         } catch (Exception ignored) {}
         // -------------------------------------------------------------------------------------------------------------
+
+
+
+        Draw(); // Отрисовка.
+    }
+
+    // Отрисовка:
+    public void Draw() {
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);  // Очистка экрана.
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);                  // Очистка экрана.
+        camera.update();                                           // Обновление камеры.
+        batch.setProjectionMatrix(camera.combined);                // Что-то непонятное но важное для камеры.
 
         /* Blocks id:
         id: -3 = snow3.
@@ -150,8 +161,8 @@ public class GameScreen implements Screen {
         id: 1 = bonfire.
         */
 
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
+        batch.begin(); // Начало отрисовки.
+
         // Отрисовка поверхностей: -------------------------------------------------------------------------------------
         for (int block_y=0; block_y < tilemap_height; block_y++) {
             // Пройтись по блокам в ширину:
@@ -160,15 +171,22 @@ public class GameScreen implements Screen {
                 int pos_y = block_unit * block_y; // Получение Y позиции блока в пикселях.
                 Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit); // Rect блока.
                 Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
-                                                      camera.position.y - camera.viewportHeight / 2,
-                                                         camera.viewportWidth, camera.viewportHeight); // Rect камеры.
+                        camera.position.y - camera.viewportHeight / 2,
+                        camera.viewportWidth, camera.viewportHeight); // Rect камеры.
 
                 // Если камера видит блок:
                 if (isCollision(block_rect, camera_rect)) {
-                    if (tilemap[block_y][block_x] == -1) { batch.draw(snow1_env, pos_x, pos_y); } // Снеж.Поверх. 1.
-                    if (tilemap[block_y][block_x] == -2) { batch.draw(snow2_env, pos_x, pos_y); } // Снеж.Поверх. 2.
-                    if (tilemap[block_y][block_x] == -3) { batch.draw(snow3_env, pos_x, pos_y); } // Снеж.Поверх. 3.
-                }}}
+                    // Снеж.Поверх. 1:
+                    if (tilemap[block_y][block_x] == -1) { batch.draw(snow1_env, pos_x, pos_y, 64, 64); }
+
+                    // Снеж.Поверх. 2:
+                    if (tilemap[block_y][block_x] == -2) { batch.draw(snow2_env, pos_x, pos_y, 64, 64); }
+
+                    // Снеж.Поверх. 3:
+                    if (tilemap[block_y][block_x] == -3) { batch.draw(snow3_env, pos_x, pos_y, 64, 64); }
+                }
+            }
+        }
         // -------------------------------------------------------------------------------------------------------------
 
         // Отрисовка блоков: -------------------------------------------------------------------------------------------
@@ -184,37 +202,49 @@ public class GameScreen implements Screen {
 
                 // Если камера видит блок:
                 if (isCollision(block_rect, camera_rect)) {
-                    if (tilemap[block_y][block_x] == 1) { batch.draw(snow1_env, pos_x, pos_y); batch.draw(bonfire_sur, pos_x, pos_y); }  // Костёр.
-                }}}
+                    // Костёр:
+                    if (tilemap[block_y][block_x] == 1) {
+                        batch.draw(snow1_env, pos_x, pos_y, 64, 64);
+                        batch.draw(bonfire_sur, pos_x, pos_y, 64, 64);
+                    }
+                }
+            }
+        }
         // -------------------------------------------------------------------------------------------------------------
 
         // Отрисовка сущностей(игроков/животных): ----------------------------------------------------------------------
-        // TODO Здесь должен быть цикл for для обработки игроков в коллекции.
+        // [...]
         // -------------------------------------------------------------------------------------------------------------
-        batch.end();
+
+        batch.end(); // Конец отрисовки.
     }
 
-    @Override
-    public void resize(int width, int height) {
-        // Вызывается при изменении размеров окна.
+    // Загрузка спрайтов:
+    Texture load_texture(String link) { return new Texture(link); }
 
-        // Установка новых размеров камеры:
-        camera.viewportWidth = Gdx.graphics.getWidth();
-        camera.viewportHeight = Gdx.graphics.getHeight();
-    }
+    // Проверка на сталкивание двух Rect:
+    boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
 
-    @Override
-    public void pause() {
-        // Вызывается при сворачивании окна.
-    }
+    // Получение позиции мыши по блокам на карте:
+    int[] block_mouse_pos() {
+        // Вычисление X позиции:
+        mouse_block_pos[0] = (Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) /
+                (int) (block_unit);
 
-    @Override
-    public void resume() {
-        // Вызывается при разворачивании окна.
-    }
+        // Вычисление Y позиции:
+        mouse_block_pos[1] = (-(Gdx.input.getY() - Gdx.graphics.getHeight()) + ((int) camera.position.y -
+                (int) camera.viewportHeight / 4) * 2) / (int) (block_unit);
 
-    @Override
-    public void hide() {
-        // Вызывается при переключении на этот скрин.
+        System.out.println(mouse_block_pos[0] + " | " + mouse_block_pos[1]);
+
+        if ((Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) < 0) {
+            mouse_block_pos[0] = -1;}
+
+        if (-(Gdx.input.getY() - Gdx.graphics.getHeight()) +
+                ((int) camera.position.y - (int) camera.viewportHeight / 4) * 2 < 0) {
+            mouse_block_pos[1] = -1;
+        }
+
+        return mouse_block_pos;
     }
 }

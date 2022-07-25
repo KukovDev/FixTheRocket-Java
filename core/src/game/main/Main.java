@@ -2,7 +2,7 @@ package game.main;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
-import game.main.Scenes.GameScreen;
+import game.main.Screens.GameScreen;
 
 public class Main extends Game {
 	// Переменные окна: ------------------------------------------------------------------------------------------------
@@ -17,6 +17,6 @@ public class Main extends Game {
 	public void create() {
 		// Вызывается при запуске окна.
 		Screen gameScreen = new GameScreen();
-		setScreen(gameScreen);
+		setScreen(gameScreen); // Переключение на игровой скрин. (P.S: ./Screens/GameScreen.java)
 	}
 }

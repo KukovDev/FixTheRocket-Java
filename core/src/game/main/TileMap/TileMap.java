@@ -13,7 +13,7 @@ public class TileMap {
                 if (block_id < -3) block_id = -1;
 
                 // Добавление в блок, id блока:
-                tilemap_list[block_y][block_x] = block_id;
+                tilemap_list[block_y][block_x] = 1;
             }
         }
         return tilemap_list;
