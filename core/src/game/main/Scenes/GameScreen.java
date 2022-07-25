@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import game.main.Main;
@@ -18,17 +19,17 @@ import game.main.Objects.Player;
 
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
-    private OrthographicCamera camera;      // 2D камера.
-    private final float zoom = 0.5f;              // Зум камеры.
+    OrthographicCamera camera;      // 2D камера.
+    float zoom = 0.5f;        // Зум камеры.
 
-    private List<Player> list_players;      // TODO Список игроков.
+    List<Player> list_players;      // TODO Список игроков.
 
-    private int[][] tilemap;                // Карта.
-    private final int tilemap_height = 256; // Высота карты.
-    private final int tilemap_width = 256;  // Ширина карты.
-    final byte block_unit = 32;             // 1 unit = 32 px.
+    int[][] tilemap;                // Карта.
+    final int tilemap_height = 3; // Высота карты.
+    final int tilemap_width = 3;  // Ширина карты.
+    final short block_unit = 128;     // 1 unit = 32 px.
 
-    // private int[] tilemap_mouse_pos; TODO Найти блок по позиции мыши.
+    private int[] mouse_block_pos;
     // -----------------------------------------------------------------------------------------------------------------
 
     // Текстуры: -------------------------------------------------------------------------------------------------------
@@ -52,17 +53,35 @@ public class GameScreen implements Screen {
     // Проверка на сталкивание двух Rect:
     public boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
 
+    public int[] block_mouse_pos() {
+        mouse_block_pos[0] = (Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) /
+                (int) (block_unit / zoom);
+
+        mouse_block_pos[1] = (-(Gdx.input.getY() - Gdx.graphics.getHeight()) + ((int) camera.position.y -
+                (int) camera.viewportHeight / 4) * 2) / (int) (block_unit / zoom);
+
+        if ((Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) < 0) {
+            mouse_block_pos[0] = -1;
+        }
+
+        if (-(Gdx.input.getY() - Gdx.graphics.getHeight()) +
+                ((int) camera.position.y - (int) camera.viewportHeight / 4) * 2 < 0) {
+            mouse_block_pos[1] = -1;
+        }
+
+        return mouse_block_pos;
+    }
+
     @Override
     public void show() {
         // Вызывается при переключении на этот скрин.
 
         // Создание игровых переменных: --------------------------------------------------------------------------------
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.zoom = zoom;
 
         list_players = new ArrayList<>();
         tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width);
-        // tilemap_mouse_pos = new int[2]; TODO Найти блок по позиции мыши.
+        mouse_block_pos = new int[2];
         // -------------------------------------------------------------------------------------------------------------
 
         // Загрузка текстур: -------------------------------------------------------------------------------------------
@@ -92,6 +111,8 @@ public class GameScreen implements Screen {
         float deltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond(); // Получение DeltaTime.
         if (deltaTime > 340282356779733661637539395458142568447.9f) deltaTime = 1; // Если DeltaTime больше максимума.
 
+        mouse_block_pos = block_mouse_pos(); // Получение указания мыши на блок.
+
         camera.update(); // Обновление камеры.
         camera.zoom = zoom;
 
@@ -101,10 +122,19 @@ public class GameScreen implements Screen {
         if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * deltaTime;
 
         Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond());
+
+        // Установка блоков:
+        try {
+            if (Gdx.input.isKeyPressed(Input.Keys.E))
+                tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = 0;
+            if (Gdx.input.isKeyPressed(Input.Keys.Q))
+                tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = -1;
+        } catch (Exception ignored) {}
         // -------------------------------------------------------------------------------------------------------------
 
         // Отрисовка: --------------------------------------------------------------------------------------------------
         batch.setProjectionMatrix(camera.combined);
+
         batch.begin();
 
         // Пройтись по блокам в высоту:
