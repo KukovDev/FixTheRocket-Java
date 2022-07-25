@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import game.main.Main;
@@ -19,36 +18,34 @@ import game.main.Objects.Player;
 
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
-    OrthographicCamera camera;      // 2D камера.
-    float zoom = 0.5f;        // Зум камеры.
+    OrthographicCamera camera;        // 2D камера.
+    float zoom = 0.5f;                // Зум камеры.
 
-    List<Player> list_players;      // TODO Список игроков.
+    List<Player> list_players;        // TODO Список игроков.
 
-    int[][] tilemap;                // Карта.
-    final int tilemap_height = 3; // Высота карты.
-    final int tilemap_width = 3;  // Ширина карты.
-    final short block_unit = 128;     // 1 unit = 32 px.
+    int[][] tilemap;                  // Карта.
+    final int tilemap_height = 4;     // Высота карты.
+    final int tilemap_width = 4;      // Ширина карты.
+    final short block_unit = 32;     // 1 unit = 32 px.
 
-    private int[] mouse_block_pos;
+    int[] mouse_block_pos;    // Позиция мыши в блоках.
+    int old_id_block_env;             // Айди поверхности на которую поставили блок.
     // -----------------------------------------------------------------------------------------------------------------
 
     // Текстуры: -------------------------------------------------------------------------------------------------------
-    private SpriteBatch batch;   // Партия спрайтов на отрисовку.
+    SpriteBatch batch;   // Партия спрайтов на отрисовку.
 
-    private Texture snow1_env;   // Снежная поверхность 1.
-    private Texture snow2_env;   // Снежная поверхность 2.
-    private Texture snow3_env;   // Снежная поверхность 3.
+    Texture snow1_env;   // Снежная поверхность 1.
+    Texture snow2_env;   // Снежная поверхность 2.
+    Texture snow3_env;   // Снежная поверхность 3.
 
-    private Texture player_txtr; // Текстура игрока.
+    Texture bonfire_sur; // Костёр.
+
+    Texture player_txtr; // Текстура игрока.
     // -----------------------------------------------------------------------------------------------------------------
 
-    /* P.S: Этот блок кода не используется.
-    public Texture texture_filter(Texture texture) {
-        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        return texture;}*/
-
     // Загрузка спрайтов:
-    public Texture load_texture(String link) { return new Texture(link); }
+    Texture load_texture(String link) { return new Texture(link); }
 
     // Проверка на сталкивание двух Rect:
     public boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
@@ -90,7 +87,7 @@ public class GameScreen implements Screen {
         snow1_env = load_texture("sprites/blocks/environment/snow1.png");
         snow2_env = load_texture("sprites/blocks/environment/snow2.png");
         snow3_env = load_texture("sprites/blocks/environment/snow3.png");
-
+        bonfire_sur = load_texture("sprites/blocks/survival/bonfire/bonfire1.png");
         player_txtr = load_texture("sprites/player/running/1.png");
         // -------------------------------------------------------------------------------------------------------------
 
@@ -100,10 +97,20 @@ public class GameScreen implements Screen {
     }
 
     @Override
+    public void dispose() {
+        // Вызывается при закрытии окна.
+        batch.dispose();
+        snow1_env.dispose();
+        snow2_env.dispose();
+        snow3_env.dispose();
+        bonfire_sur.dispose();
+        player_txtr.dispose();
+    }
+
+    @Override
     public void render(float delta) {
         // Вызывается постоянно.
 
-        // Очистка экрана, обновление камеры: --------------------------------------------------------------------------
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f); // > Очистка экрана.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);                 // |
 
@@ -111,33 +118,41 @@ public class GameScreen implements Screen {
         float deltaTime = (float) Main.window_FPS / Gdx.graphics.getFramesPerSecond(); // Получение DeltaTime.
         if (deltaTime > 340282356779733661637539395458142568447.9f) deltaTime = 1; // Если DeltaTime больше максимума.
 
-        mouse_block_pos = block_mouse_pos(); // Получение указания мыши на блок.
-
         camera.update(); // Обновление камеры.
         camera.zoom = zoom;
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * deltaTime;
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * deltaTime;
+        if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * deltaTime; // > Перемещение камеры.
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) camera.position.x -= 5 * deltaTime; // |
+        if (Gdx.input.isKeyPressed(Input.Keys.S)) camera.position.y -= 5 * deltaTime; // |
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) camera.position.x += 5 * deltaTime; // |
 
         Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond());
 
-        // Установка блоков:
+        // Установка блоков: -------------------------------------------------------------------------------------------
         try {
-            if (Gdx.input.isKeyPressed(Input.Keys.E))
-                tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = 0;
-            if (Gdx.input.isKeyPressed(Input.Keys.Q))
+            mouse_block_pos = block_mouse_pos(); // Получение указания мыши на блок.
+
+            if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+                old_id_block_env = tilemap[mouse_block_pos[1]][mouse_block_pos[0]];
+                tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = 1;
+            }
+
+            if (Gdx.input.isButtonPressed(Input.Buttons.RIGHT))
                 tilemap[mouse_block_pos[1]][mouse_block_pos[0]] = -1;
         } catch (Exception ignored) {}
         // -------------------------------------------------------------------------------------------------------------
 
-        // Отрисовка: --------------------------------------------------------------------------------------------------
+        /* Blocks id:
+        id: -3 = snow3.
+        id: -2 = snow2.
+        id: -1 = snow1.
+        -----------------
+        id: 1 = bonfire.
+        */
+
         batch.setProjectionMatrix(camera.combined);
-
         batch.begin();
-
-        // Пройтись по блокам в высоту:
+        // Отрисовка поверхностей: -------------------------------------------------------------------------------------
         for (int block_y=0; block_y < tilemap_height; block_y++) {
             // Пройтись по блокам в ширину:
             for (int block_x=0; block_x < tilemap_width; block_x++) {
@@ -153,14 +168,30 @@ public class GameScreen implements Screen {
                     if (tilemap[block_y][block_x] == -1) { batch.draw(snow1_env, pos_x, pos_y); } // Снеж.Поверх. 1.
                     if (tilemap[block_y][block_x] == -2) { batch.draw(snow2_env, pos_x, pos_y); } // Снеж.Поверх. 2.
                     if (tilemap[block_y][block_x] == -3) { batch.draw(snow3_env, pos_x, pos_y); } // Снеж.Поверх. 3.
-                }
-            }
-        }
-
-        // TODO Здесь должен быть цикл for для обработки игроков в коллекции.
-
-        batch.end();
+                }}}
         // -------------------------------------------------------------------------------------------------------------
+
+        // Отрисовка блоков: -------------------------------------------------------------------------------------------
+        for (int block_y=0; block_y < tilemap_height; block_y++) {
+            // Пройтись по блокам в ширину:
+            for (int block_x=0; block_x < tilemap_width; block_x++) {
+                int pos_x = block_unit * block_x; // Получение X позиции блока в пикселях.
+                int pos_y = block_unit * block_y; // Получение Y позиции блока в пикселях.
+                Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit); // Rect блока.
+                Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
+                        camera.position.y - camera.viewportHeight / 2,
+                        camera.viewportWidth, camera.viewportHeight); // Rect камеры.
+
+                // Если камера видит блок:
+                if (isCollision(block_rect, camera_rect)) {
+                    if (tilemap[block_y][block_x] == 1) { batch.draw(snow1_env, pos_x, pos_y); batch.draw(bonfire_sur, pos_x, pos_y); }  // Костёр.
+                }}}
+        // -------------------------------------------------------------------------------------------------------------
+
+        // Отрисовка сущностей(игроков/животных): ----------------------------------------------------------------------
+        // TODO Здесь должен быть цикл for для обработки игроков в коллекции.
+        // -------------------------------------------------------------------------------------------------------------
+        batch.end();
     }
 
     @Override
@@ -185,15 +216,5 @@ public class GameScreen implements Screen {
     @Override
     public void hide() {
         // Вызывается при переключении на этот скрин.
-    }
-
-    @Override
-    public void dispose() {
-        // Вызывается при закрытии окна.
-        batch.dispose();
-        snow1_env.dispose();
-        snow2_env.dispose();
-        snow3_env.dispose();
-        player_txtr.dispose();
     }
 }

@@ -3,13 +3,6 @@ package game.main.TileMap;
 public class TileMap {
     public static int[][] Create(int height, int width) {
         int[][] tilemap_list =  new int[height][width];  // Создание коллекции. (создание сетки блоков).
-
-        /* Blocks id:
-        id: -3 = snow3
-        id: -2 = snow2
-        id: -1 = snow1
-        id: 0 = null
-        */
         // Проход по блокам по высоте:
         byte block_id = 0;
 
