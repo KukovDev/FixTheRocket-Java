@@ -1,4 +1,4 @@
-package game.main.Screens;
+package game.main.screens;
 
 // Импорт библиотек: ---------------------------------------------------------------------------------------------------
 import com.badlogic.gdx.Gdx;
@@ -11,22 +11,28 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import game.main.Main;
+import game.main.other.MyInputProcessor;
+import game.main.tilemap.TileMap;
 // ---------------------------------------------------------------------------------------------------------------------
 
 public class GameScreen implements Screen {
     // Игровые переменные: ---------------------------------------------------------------------------------------------
 
     // Камера:
-    OrthographicCamera camera;        // 2D камера.
-    float zoom = 1f;                  // Зум камеры.
+    OrthographicCamera camera;                  // 2D камера.
+    public float zoom = 1f;                     // Зум камеры.
+
+    public float mouseScroll;                   // Вращение колёсика мыши.
+
+    public MyInputProcessor inputProcessor;     // Штука событий.
 
     // Карта:
-    int[][] tilemap;                  // Карта.
-    final int tilemap_height = 8;     // Высота карты.
-    final int tilemap_width = 8;      // Ширина карты.
-    final short block_unit = 64;      // 1 unit = 64 px.
-    int[] mouse_block_pos;            // Позиция мыши в блоках.
-    int old_id_block_env;             // Айди поверхности на которую поставили блок.
+    short[][] tilemap;                          // Карта.
+    final short tilemap_height = 8;             // Высота карты.
+    final short tilemap_width = 8;              // Ширина карты.
+    public static final short bk_ut_sz = 64;    // 1 unit = 64 px.
+    int[] mouse_block_pos;                      // Позиция мыши в блоках.
+    int old_id_block_env;                       // Айди поверхности на которую поставили блок.
     // -----------------------------------------------------------------------------------------------------------------
 
     // Текстуры: -------------------------------------------------------------------------------------------------------
@@ -48,8 +54,12 @@ public class GameScreen implements Screen {
         // Создание игровых переменных: --------------------------------------------------------------------------------
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // Камера.
 
-        tilemap = game.main.TileMap.TileMap.Create(tilemap_height, tilemap_width);
-        mouse_block_pos = new int[2];
+        tilemap = TileMap.Create(tilemap_height, tilemap_width); // Создание карты.
+        mouse_block_pos = new int[2];                            // Позиция мыши.
+        mouseScroll = 0f;                                        // Скролл мыши.
+
+        inputProcessor = new MyInputProcessor();                 // Доп.источники ввода.
+        Gdx.input.setInputProcessor(inputProcessor);             // Доп.источники ввода.
         // -------------------------------------------------------------------------------------------------------------
 
         // Загрузка текстур: -------------------------------------------------------------------------------------------
@@ -83,6 +93,7 @@ public class GameScreen implements Screen {
         // Вызывается постоянно.
 
         Logic(); // Вызов логики.
+        Draw();  // Вызов отрисовки.
     }
 
     @Override
@@ -112,9 +123,16 @@ public class GameScreen implements Screen {
         if (DeltaTime > 340282356779733661637539395458142568447.9f) DeltaTime = 1; // Если DeltaTime больше максимума.
         // -------------------------------------------------------------------------------------------------------------
 
-        camera.zoom = zoom; // Установка зума камеры.
+        // Зум камеры: -------------------------------------------------------------------------------------------------
+        mouseScroll = getScroll();    // Получение скроллинга.
+        zoom += mouseScroll / 10;     // Установка зума камеры.
+        if (zoom > 2.5f) zoom = 2.5f; if (zoom < 0.5f) zoom = 0.5f; // Установка ограничений зумминга.
+        camera.zoom = zoom;           // Применение зума.
+        MyInputProcessor.scroll = 0f; // Сброс скроллинга.
+        // -------------------------------------------------------------------------------------------------------------
 
-        Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond()); // Заголовок окна.
+        // Заголовок окна:
+        Gdx.graphics.setTitle(Main.window_Title + " | FPS: " + Gdx.graphics.getFramesPerSecond() + " | zoom: " + zoom);
 
         // Перемещение камеры: -----------------------------------------------------------------------------------------
         if (Gdx.input.isKeyPressed(Input.Keys.W)) camera.position.y += 5 * DeltaTime;
@@ -140,10 +158,6 @@ public class GameScreen implements Screen {
 
         } catch (Exception ignored) {}
         // -------------------------------------------------------------------------------------------------------------
-
-
-
-        Draw(); // Отрисовка.
     }
 
     // Отрисовка:
@@ -167,12 +181,12 @@ public class GameScreen implements Screen {
         for (int block_y=0; block_y < tilemap_height; block_y++) {
             // Пройтись по блокам в ширину:
             for (int block_x=0; block_x < tilemap_width; block_x++) {
-                int pos_x = block_unit * block_x; // Получение X позиции блока в пикселях.
-                int pos_y = block_unit * block_y; // Получение Y позиции блока в пикселях.
-                Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit); // Rect блока.
-                Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
-                        camera.position.y - camera.viewportHeight / 2,
-                        camera.viewportWidth, camera.viewportHeight); // Rect камеры.
+                int pos_x = bk_ut_sz * block_x; // Получение X позиции блока в пикселях.
+                int pos_y = bk_ut_sz * block_y; // Получение Y позиции блока в пикселях.
+                Rectangle block_rect = new Rectangle(pos_x, pos_y, bk_ut_sz, bk_ut_sz); // Rect блока.
+                Rectangle camera_rect = new Rectangle(camera.position.x - ((camera.viewportWidth * zoom) / 2),
+                        camera.position.y - ((camera.viewportHeight * zoom) / 2),
+                        camera.viewportWidth * zoom, camera.viewportHeight * zoom); // Rect камеры.
 
                 // Если камера видит блок:
                 if (isCollision(block_rect, camera_rect)) {
@@ -193,12 +207,12 @@ public class GameScreen implements Screen {
         for (int block_y=0; block_y < tilemap_height; block_y++) {
             // Пройтись по блокам в ширину:
             for (int block_x=0; block_x < tilemap_width; block_x++) {
-                int pos_x = block_unit * block_x; // Получение X позиции блока в пикселях.
-                int pos_y = block_unit * block_y; // Получение Y позиции блока в пикселях.
-                Rectangle block_rect = new Rectangle(pos_x, pos_y, block_unit, block_unit); // Rect блока.
-                Rectangle camera_rect = new Rectangle(camera.position.x - camera.viewportWidth / 2,
-                        camera.position.y - camera.viewportHeight / 2,
-                        camera.viewportWidth, camera.viewportHeight); // Rect камеры.
+                int pos_x = bk_ut_sz * block_x; // Получение X позиции блока в пикселях.
+                int pos_y = bk_ut_sz * block_y; // Получение Y позиции блока в пикселях.
+                Rectangle block_rect = new Rectangle(pos_x, pos_y, bk_ut_sz, bk_ut_sz); // Rect блока.
+                Rectangle camera_rect = new Rectangle(camera.position.x - ((camera.viewportWidth * zoom) / 2),
+                        camera.position.y - ((camera.viewportHeight * zoom) / 2),
+                        camera.viewportWidth * zoom, camera.viewportHeight * zoom); // Rect камеры.
 
                 // Если камера видит блок:
                 if (isCollision(block_rect, camera_rect)) {
@@ -220,30 +234,36 @@ public class GameScreen implements Screen {
     }
 
     // Загрузка спрайтов:
-    Texture load_texture(String link) { return new Texture(link); }
+    public Texture load_texture(String link) { return new Texture(link); }
 
     // Проверка на сталкивание двух Rect:
-    boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
+    public boolean isCollision(Rectangle rect1, Rectangle rect2) { return Intersector.overlaps(rect1, rect2); }
+
+    // Получение вращения колёсика мыши:
+    public float getScroll() { return MyInputProcessor.scroll; }
 
     // Получение позиции мыши по блокам на карте:
-    int[] block_mouse_pos() {
-        // Вычисление X позиции:
-        mouse_block_pos[0] = (Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) /
-                (int) (block_unit);
+    public int[] block_mouse_pos() { // TODO Доработать. При зуме камеры координаты мышки относительно карты ломаются.
+        // Вычисление X позиции: ---------------------------------------------------------------------------------------
+        int mouse_map_pos_x = Gdx.input.getX() +
+                (int)camera.position.x - (int)camera.viewportWidth / 2;
+        mouse_block_pos[0] = mouse_map_pos_x / bk_ut_sz; // Позиция мыши на карте в блоках.
+        // -------------------------------------------------------------------------------------------------------------
 
-        // Вычисление Y позиции:
-        mouse_block_pos[1] = (-(Gdx.input.getY() - Gdx.graphics.getHeight()) + ((int) camera.position.y -
-                (int) camera.viewportHeight / 4) * 2) / (int) (block_unit);
+        // Вычисление Y позиции: ---------------------------------------------------------------------------------------
+        int mouse_map_pos_y = -(Gdx.input.getY() - Gdx.graphics.getHeight()) +
+                (int)camera.position.y - (int)camera.viewportHeight / 2;
+        mouse_block_pos[1] = mouse_map_pos_y / bk_ut_sz; // Позиция мыши на карте в блоках.
+        // -------------------------------------------------------------------------------------------------------------
 
-        System.out.println(mouse_block_pos[0] + " | " + mouse_block_pos[1]);
-
-        if ((Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) < 0) {
-            mouse_block_pos[0] = -1;}
+        if ((Gdx.input.getX() + ((int) camera.position.x - (int) camera.viewportWidth / 4) * 2) < 0)
+        { mouse_block_pos[0] = -1; }
 
         if (-(Gdx.input.getY() - Gdx.graphics.getHeight()) +
-                ((int) camera.position.y - (int) camera.viewportHeight / 4) * 2 < 0) {
-            mouse_block_pos[1] = -1;
-        }
+        ((int)camera.position.y - (int)camera.viewportHeight / 4) * 2 < 0)
+        { mouse_block_pos[1] = -1; }
+
+        // System.out.println(mouse_map_pos_x + " | " + mouse_map_pos_y);
 
         return mouse_block_pos;
     }

@@ -2,7 +2,7 @@ package game.main;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Screen;
-import game.main.Screens.GameScreen;
+import game.main.screens.GameScreen;
 
 public class Main extends Game {
 	// Переменные окна: ------------------------------------------------------------------------------------------------
