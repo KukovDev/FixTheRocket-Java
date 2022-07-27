@@ -1,8 +1,8 @@
-package game.main.other;
+package game.main.input;
 
 import com.badlogic.gdx.InputProcessor;
 
-public class MyInputProcessor implements InputProcessor {
+public class inputDesktop implements InputProcessor {
     public static float scroll = 0;
 
     @Override

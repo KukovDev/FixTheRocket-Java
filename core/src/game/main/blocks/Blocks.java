@@ -18,18 +18,18 @@ public class Blocks {
     public Texture[] block_texture;
 
     public Blocks() {
-        rect = new Rectangle(pos_block_x * GameScreen.bk_ut_sz,
-                pos_block_y * GameScreen.bk_ut_sz,
-                GameScreen.bk_ut_sz * unit,
-                GameScreen.bk_ut_sz * unit);
+        rect = new Rectangle(pos_block_x * GameScreen.unit_size,
+                pos_block_y * GameScreen.unit_size,
+                GameScreen.unit_size * unit,
+                GameScreen.unit_size * unit);
     }
 
     public void draw(SpriteBatch batch) {
         batch.draw(block_texture[(int) anim_step],
-                pos_block_x * GameScreen.bk_ut_sz,
-                pos_block_y * GameScreen.bk_ut_sz,
-                GameScreen.bk_ut_sz * unit,
-                GameScreen.bk_ut_sz * unit);
+                pos_block_x * GameScreen.unit_size,
+                pos_block_y * GameScreen.unit_size,
+                GameScreen.unit_size * unit,
+                GameScreen.unit_size * unit);
     }
 
     public void AnimUpdate() {

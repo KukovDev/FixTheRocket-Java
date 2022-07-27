@@ -1,6 +1,6 @@
 package game.main.tilemap;
 
-public class TileMap {
+public class tilemap {
     public static short[][] Create(short height, short width) {
         // Максимальные размеры карты 32,000 на 32,000 блоков. Это 1,024,000,000 Блоков:
         if (height > 32000) height = 32000; if (width > 32000) width = 32000;

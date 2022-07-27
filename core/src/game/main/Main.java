@@ -1,7 +1,6 @@
 package game.main;
 
 import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Screen;
 import game.main.screens.GameScreen;
 
 public class Main extends Game {
@@ -16,7 +15,11 @@ public class Main extends Game {
 	@Override
 	public void create() {
 		// Вызывается при запуске окна.
-		Screen gameScreen = new GameScreen();
-		setScreen(gameScreen); // Переключение на игровой скрин. (P.S: ./Screens/GameScreen.java)
+		setScreen(new GameScreen());  // Переключение на игровой скрин. (P.S: ./screens/GameScreen.java)
+	}
+
+	@Override
+	public void render() {
+		super.render();
 	}
 }
